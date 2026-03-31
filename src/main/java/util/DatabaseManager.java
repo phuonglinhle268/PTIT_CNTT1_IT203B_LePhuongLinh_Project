@@ -20,7 +20,7 @@ public class DatabaseManager {
         }
     }
 
-    public static synchronized DatabaseManager getInstance() {
+    public static DatabaseManager getInstance() {
         if (instance == null) {
             instance = new DatabaseManager();
         }

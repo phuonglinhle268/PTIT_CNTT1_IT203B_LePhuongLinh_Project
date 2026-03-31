@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class CustomerService {
-
     private final ProductDAO     productDAO;
     private final CategoryDAO    categoryDAO;
     private final OrderDAO       orderDAO;
@@ -25,14 +24,14 @@ public class CustomerService {
     private final FlashSaleService flashSaleService;
 
     public CustomerService() {
-        this.productDAO      = new ProductDAOImpl();
-        this.categoryDAO     = new CategoryDAOImpl();
-        this.orderDAO        = new OrderDAOImpl();
-        this.profileDAO      = new UserProfileDAOImpl();
+        this.productDAO = new ProductDAOImpl();
+        this.categoryDAO = new CategoryDAOImpl();
+        this.orderDAO = new OrderDAOImpl();
+        this.profileDAO = new UserProfileDAOImpl();
         this.flashSaleService = new FlashSaleService();
     }
 
-    // ── SAN PHAM ─────────────────────────────────────────────────────────
+    // sản phẩm
 
     public List<Product> getProductsInStock() {
         return productDAO.getProductsInStock();
@@ -70,31 +69,23 @@ public class CustomerService {
                 .toList();
     }
 
-    // ── GIO HANG ─────────────────────────────────────────────────────────
+    // giỏ hàng
 
-    /**
-     * Them san pham vao gio hang.
-     *
-     * @param flashSale FlashSale dang hoat dong (null neu khong co).
-     *                  Neu co → unitPrice = gia flash.
-     *                  Neu khong → unitPrice = gia goc.
-     *
-     * Day la diem quan trong: gio hang luu unitPrice tai thoi diem them,
-     * dam bao tong tien trong gio khop voi gia hien thi tren bang san pham.
-     */
+    //Them san pham vao gio hang.
+
     public void addToCart(List<CartItem> cart, int productId,
                           int quantity, FlashSale flashSale) {
         if (quantity <= 0) {
-            throw new IllegalArgumentException("So luong phai lon hon 0.");
+            throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
         }
 
         Product product = productDAO.getProductById(productId);
         if (product == null) {
-            throw new IllegalArgumentException("Khong tim thay san pham ID = " + productId);
+            throw new IllegalArgumentException("Không tìm thấy sản phẩm với ID = " + productId);
         }
         if (product.getStock() <= 0) {
             throw new IllegalArgumentException(
-                    "San pham \"" + product.getProductName() + "\" da het hang.");
+                    "Sản phẩm \"" + product.getProductName() + "\" đã hết hàng");
         }
 
         int alreadyInCart = cart.stream()
@@ -104,8 +95,8 @@ public class CustomerService {
 
         if (alreadyInCart + quantity > product.getStock()) {
             throw new IllegalArgumentException(
-                    "Khong du hang! Ton kho: " + product.getStock() +
-                            " | Da co trong gio: " + alreadyInCart + ".");
+                    "Không đủ hàng! Tồn kho: " + product.getStock() +
+                            " | Đã có trong giỏ: " + alreadyInCart + ".");
         }
 
         // Tinh gia thuc te tai luc them vao gio
@@ -113,7 +104,7 @@ public class CustomerService {
                 ? flashSaleService.calculateFlashPrice(product, flashSale)
                 : product.getPrice();
 
-        // Neu da co trong gio → cong them so luong, giu nguyen unitPrice cu
+        // Neu da co trong gio → cong them so luong
         for (CartItem item : cart) {
             if (item.getProduct().getProductId() == productId) {
                 item.setQuantity(item.getQuantity() + quantity);
@@ -132,26 +123,26 @@ public class CustomerService {
 
     public void removeFromCart(List<CartItem> cart, int index) {
         if (index < 0 || index >= cart.size()) {
-            throw new IllegalArgumentException("Vi tri khong hop le.");
+            throw new IllegalArgumentException("Vị trí không hợp lệ");
         }
         cart.remove(index);
     }
 
     public BigDecimal calculateCartTotal(List<CartItem> cart) {
         return cart.stream()
-                .map(CartItem::getSubtotal)  // dung unitPrice da luu, khong dung price goc
+                .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    // ── DAT HANG ─────────────────────────────────────────────────────────
+    //đặt hàng
 
     public Order checkout(List<CartItem> cart, int userId,
                           String shippingAddress) throws SQLException {
         if (cart.isEmpty()) {
-            throw new IllegalArgumentException("Gio hang trong.");
+            throw new IllegalArgumentException("Giỏ hàng trống");
         }
         if (shippingAddress == null || shippingAddress.trim().isEmpty()) {
-            throw new IllegalArgumentException("Dia chi giao hang khong duoc de trong.");
+            throw new IllegalArgumentException("Địa chỉ giao hàng không được để trống");
         }
 
         BigDecimal total = calculateCartTotal(cart);
@@ -162,7 +153,6 @@ public class CustomerService {
             OrderDetail detail = new OrderDetail();
             detail.setProductId(item.getProduct().getProductId());
             detail.setQuantity(item.getQuantity());
-            // Luu gia tai thoi diem mua = unitPrice trong CartItem (da co flash neu co)
             detail.setPriceAtPurchase(item.getUnitPrice());
             details.add(detail);
         }
@@ -174,7 +164,7 @@ public class CustomerService {
         return order;
     }
 
-    // ── DON HANG ─────────────────────────────────────────────────────────
+    //đơn
 
     public List<Order> getOrderHistory(int userId) throws SQLException {
         return orderDAO.findByUserId(userId);
@@ -184,8 +174,7 @@ public class CustomerService {
         return orderDAO.findDetailsByOrderId(orderId);
     }
 
-    // ── HO SO ────────────────────────────────────────────────────────────
-
+    //profile
     public Optional<User> getProfile(int userId) throws SQLException {
         return profileDAO.findById(userId);
     }
@@ -194,14 +183,14 @@ public class CustomerService {
                               String email, String phone,
                               String address) throws SQLException {
         if (fullName == null || fullName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ho ten khong duoc de trong.");
+            throw new IllegalArgumentException("Họ tên không được để trống");
         }
         if (email == null || !email.contains("@")) {
-            throw new IllegalArgumentException("Email khong hop le.");
+            throw new IllegalArgumentException("Email không hợp lệ");
         }
 
         User user = getProfile(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nguoi dung."));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
         user.setFullName(fullName.trim());
         user.setEmail(email.trim());
@@ -212,7 +201,7 @@ public class CustomerService {
         return user;
     }
 
-    // ── ADMIN ─────────────────────────────────────────────────────────────
+    // admin
 
     public List<Order> getAllOrders() throws SQLException {
         return orderDAO.findAll();
@@ -225,5 +214,4 @@ public class CustomerService {
     public List<ProductSalesReport> getTop5BestSellingProductsThisMonth() throws SQLException {
         return orderDAO.getTop5BestSellingProductsThisMonth();
     }
-
 }

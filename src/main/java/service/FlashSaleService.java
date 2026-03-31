@@ -11,10 +11,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class FlashSaleService {
-
     private final FlashSaleDAO flashSaleDAO = new FlashSaleDAOImpl();
 
-    // ── Admin ─────────────────────────────────────────────────────────────
+    //admin
 
     /**
      * Tạo Flash Sale mới.
@@ -45,17 +44,16 @@ public class FlashSaleService {
         return flashSaleDAO.toggleActive(id, active);
     }
 
-    // ── Customer / dùng chung ─────────────────────────────────────────────
+    // customer - chung
 
-    /** Lấy flash sale đang diễn ra (nếu có). */
+    //Lay flash sale dang dien ra (neu co)
     public FlashSale getCurrentActiveFlashSale() {
+        flashSaleDAO.deactivateExpired(); // tat het han truoc
         return flashSaleDAO.getCurrentActiveFlashSale();
     }
 
-    /**
-     * Tính giá flash sale của một sản phẩm.
-     * Trả về giá gốc nếu không có flash sale.
-     */
+//      Tính giá flash sale của một sản phẩm.
+//      Trả về giá gốc nếu không có flash sale
     public BigDecimal calculateFlashPrice(Product product, FlashSale flashSale) {
         if (flashSale == null || product == null) {
             return product != null ? product.getPrice() : BigDecimal.ZERO;

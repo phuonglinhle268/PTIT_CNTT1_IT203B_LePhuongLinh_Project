@@ -70,7 +70,23 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
     }
 
     @Override
+    public void deactivateExpired() {
+        // Tu dong tat flash sale da het gio (end_time < NOW())
+        String sql = "update FlashSales set is_active = false " + "where is_active = true and end_time < now()";
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println("[System] Da tu dong tat " + rows + " Flash Sale het han.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Loi tat Flash Sale het han: " + e.getMessage());
+        }
+    }
+
+    @Override
     public FlashSale getCurrentActiveFlashSale() {
+        // is_active = true VÀ đang trong khoảng thời gian
         String sql = "select * from FlashSales " +
                 "where is_active = true and start_time <= now() and end_time >= now() " +
                 "order by start_time desc limit 1";
@@ -89,7 +105,7 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
 
     @Override
     public boolean deleteFlashSale(int flashSaleId) {
-        String sql = "delete  from FlashSales where flash_sale_id = ?";
+        String sql = "delete from FlashSales where flash_sale_id = ?";
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

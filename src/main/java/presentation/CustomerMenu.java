@@ -14,12 +14,12 @@ import java.util.Scanner;
 
 public class CustomerMenu {
 
-    private final CustomerService  service          = new CustomerService();
+    private final CustomerService  service = new CustomerService();
     private final FlashSaleService flashSaleService = new FlashSaleService();
-    private final CouponService    couponService    = new CouponService();
-    private final Scanner          scanner;
-    private final User             currentUser;
-    private final List<CartItem>   cart             = new ArrayList<>();
+    private final CouponService couponService = new CouponService();
+    private final Scanner scanner;
+    private final User currentUser;
+    private final List<CartItem> cart = new ArrayList<>();
 
     private static final DateTimeFormatter DT_FMT =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -28,10 +28,6 @@ public class CustomerMenu {
         this.scanner     = scanner;
         this.currentUser = currentUser;
     }
-
-    // =========================================================================
-    // MENU CHÍNH
-    // =========================================================================
 
     public void show() {
         while (true) {
@@ -52,17 +48,13 @@ public class CustomerMenu {
                 case 4 -> viewOrderHistory();
                 case 5 -> handleProfile();
                 case 0 -> {
-                    System.out.println("  Đã đăng xuất. Hẹn gặp lại, "
+                    System.out.println("Đã đăng xuất. Hẹn gặp lại, "
                             + currentUser.getFullName() + "!");
                     return;
                 }
             }
         }
     }
-
-    // =========================================================================
-    // [1] XEM & LỌC SẢN PHẨM
-    // =========================================================================
 
     private void viewAndFilterProducts() {
         while (true) {
@@ -109,12 +101,12 @@ public class CustomerMenu {
                             .multiply(BigDecimal.valueOf(1_000_000));
 
                     if (min.compareTo(max) > 0) {
-                        System.out.println("  ⚠ Giá tối thiểu phải nhỏ hơn giá tối đa!");
+                        System.out.println("Giá tối thiểu phải nhỏ hơn giá tối đa!");
                         continue;
                     }
                     filtered = service.filterByPriceRange(min, max);
                 } catch (NumberFormatException e) {
-                    System.out.println("  ⚠ Vui lòng nhập số hợp lệ.");
+                    System.out.println("Vui lòng nhập số hợp lệ.");
                     continue;
                 }
             }
@@ -133,16 +125,12 @@ public class CustomerMenu {
         }
     }
 
-    // =========================================================================
-    // [2] THÊM VÀO GIỎ HÀNG
-    // =========================================================================
-
     private void addToCart() {
         FlashSale flash = flashSaleService.getCurrentActiveFlashSale();
         List<Product> products = service.getProductsInStock();
 
         if (products.isEmpty()) {
-            System.out.println("  ⚠ Hiện chưa có sản phẩm nào còn hàng.");
+            System.out.println("Hiện chưa có sản phẩm nào còn hàng.");
             return;
         }
 
@@ -157,24 +145,20 @@ public class CustomerMenu {
         int qty = readInt(1, 999);
 
         try {
-            service.addToCart(cart, productId, qty, flash); // truyen flash de tinh gia dung
+            service.addToCart(cart, productId, qty, flash);
             String name = cart.stream()
                     .filter(i -> i.getProduct().getProductId() == productId)
                     .map(i -> i.getProduct().getProductName())
                     .findFirst().orElse("ID " + productId);
-            System.out.printf("  ✔ Đã thêm \"%s\" x%d vào giỏ hàng!%n", name, qty);
+            System.out.printf("Đã thêm \"%s\" x%d vào giỏ hàng!%n", name, qty);
         } catch (IllegalArgumentException e) {
-            System.out.println("  ✘ " + e.getMessage());
+            System.out.println("Lỗi: " + e.getMessage());
         }
     }
 
-    // =========================================================================
-    // [3] GIỎ HÀNG & ĐẶT HÀNG
-    // =========================================================================
-
     private void handleCart() {
         if (cart.isEmpty()) {
-            System.out.println("  ⚠ Giỏ hàng đang trống!");
+            System.out.println("Giỏ hàng đang trống!");
             return;
         }
 
@@ -204,28 +188,60 @@ public class CustomerMenu {
     private void checkoutSelected() {
         printCartTable();
 
-        System.out.println("\n  Nhập STT sản phẩm muốn đặt (cách nhau dấu cách, ví dụ: 1 3):");
+        System.out.println("\nNhập STT sản phẩm muốn đặt (cách nhau dấu cách, ví dụ: 1 3):");
         System.out.print("  > ");
         String input = scanner.nextLine().trim();
         if (input.isEmpty()) return;
 
-        List<CartItem> selected = new ArrayList<>();
+        List<Integer> stts = new ArrayList<>();
         for (String s : input.split("\\s+")) {
             try {
                 int stt = Integer.parseInt(s);
-                if (stt >= 1 && stt <= cart.size()) {
-                    CartItem item = cart.get(stt - 1);
-                    if (!selected.contains(item)) selected.add(item);
+                if (stt >= 1 && stt <= cart.size() && !stts.contains(stt)) {
+                    stts.add(stt);
                 }
             } catch (NumberFormatException ignored) {}
         }
 
-        if (selected.isEmpty()) {
-            System.out.println("  ⚠ Không có sản phẩm nào được chọn hợp lệ.");
+        if (stts.isEmpty()) {
+            System.out.println("Không có sản phẩm nào được chọn hợp lệ.");
             return;
         }
 
-        // Hiển thị tóm tắt trước khi checkout
+        // Với mỗi sản phẩm được chọn → hỏi số lượng muốn đặt
+        // Tạo CartItem mới với số lượng đã điều chỉnh (không thay đổi giỏ gốc)
+        List<CartItem> selected = new ArrayList<>();
+        for (int stt : stts) {
+            CartItem item = cart.get(stt - 1);
+            Product p = item.getProduct();
+
+            System.out.printf("\n  [%d] %s (Giỏ: %d | Tồn kho: %d)%n",
+                    stt, p.getProductName(), item.getQuantity(), p.getStock());
+            System.out.printf("  Số lượng muốn đặt (1-%d, Enter = đặt hết %d): ",
+                    item.getQuantity(), item.getQuantity());
+            String qtyInput = scanner.nextLine().trim();
+
+            int qtyToOrder;
+            if (qtyInput.isEmpty()) {
+                qtyToOrder = item.getQuantity(); // đặt hết số lượng trong giỏ
+            } else {
+                try {
+                    qtyToOrder = Integer.parseInt(qtyInput);
+                    if (qtyToOrder <= 0 || qtyToOrder > item.getQuantity()) {
+                        System.out.printf("Số lượng không hợp lệ, đặt hết %d.%n", item.getQuantity());
+                        qtyToOrder = item.getQuantity();
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.printf("Nhập sai, đặt hết %d.%n", item.getQuantity());
+                    qtyToOrder = item.getQuantity();
+                }
+            }
+
+            // Tạo CartItem tạm với số lượng muốn đặt, giữ nguyên unitPrice
+            selected.add(new CartItem(p, qtyToOrder, item.getUnitPrice()));
+        }
+
+        // Hiển thị tóm tắt
         System.out.println("\n  Sản phẩm sẽ đặt:");
         BigDecimal subtotal = BigDecimal.ZERO;
         for (int i = 0; i < selected.size(); i++) {
@@ -240,9 +256,8 @@ public class CustomerMenu {
         performCheckout(selected);
     }
 
-    // Thực hiện đặt hàng — hỏi địa chỉ, coupon, xác nhận, gọi service
+    // Thực hiện đặt hàng
     private void performCheckout(List<CartItem> selectedItems) {
-        // ── Địa chỉ giao hàng ─────────────────────────────────────────────
         String shippingAddress;
         String currentAddr = currentUser.getAddress();
 
@@ -261,16 +276,14 @@ public class CustomerMenu {
         }
 
         if (shippingAddress.isEmpty()) {
-            System.out.println("  ✘ Địa chỉ không được để trống.");
+            System.out.println("Địa chỉ không được để trống.");
             return;
         }
 
-        // ── Tính tổng gốc ─────────────────────────────────────────────────
         BigDecimal originalTotal = selectedItems.stream()
                 .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // ── Nhập mã giảm giá ──────────────────────────────────────────────
         System.out.print("  Nhập mã giảm giá (Enter để bỏ qua): ");
         String couponInput = scanner.nextLine().trim().toUpperCase();
         String couponCode  = couponInput.isEmpty() ? null : couponInput;
@@ -281,9 +294,9 @@ public class CustomerMenu {
             try {
                 finalTotal = couponService.applyDiscount(originalTotal, couponCode);
                 BigDecimal saved = originalTotal.subtract(finalTotal);
-                System.out.printf("  ✔ Mã hợp lệ! Tiết kiệm: %,.0f VND%n", saved);
+                System.out.printf("Mã hợp lệ! Tiết kiệm: %,.0f VND%n", saved);
             } catch (IllegalArgumentException e) {
-                System.out.println("  ✘ " + e.getMessage());
+                System.out.println("Lỗi: " + e.getMessage());
                 System.out.print("  Tiếp tục không áp dụng mã giảm giá? (Y/N): ");
                 if (!scanner.nextLine().trim().equalsIgnoreCase("Y")) return;
                 couponCode = null;
@@ -291,7 +304,6 @@ public class CustomerMenu {
             }
         }
 
-        // ── Tóm tắt đơn hàng ──────────────────────────────────────────────
         System.out.println("\n  ┌─────────────────────────────────────────────┐");
         System.out.println("  │             TÓM TẮT ĐƠN HÀNG               │");
         System.out.println("  ├─────────────────────────────────────────────┤");
@@ -315,18 +327,16 @@ public class CustomerMenu {
             return;
         }
 
-        // ── Gọi service checkout ───────────────────────────────────────────
         List<CartItem> tempCart = new ArrayList<>(selectedItems);
 
         try {
             Order order = service.checkout(tempCart, currentUser.getUserId(), shippingAddress);
 
-            // Tăng used_count coupon sau khi đặt thành công
             if (couponCode != null) {
                 couponService.useCoupon(couponCode);
             }
 
-            System.out.println("\n  ✔ Đặt hàng thành công!");
+            System.out.println("\nĐặt hàng thành công!");
             System.out.println("  ┌──────────────────────────────────────────────┐");
             System.out.printf ("  │  Mã đơn hàng : #%-27d│%n", order.getOrderId());
             System.out.printf ("  │  Thanh toán  : %,27.0f VND│%n", finalTotal);
@@ -336,17 +346,32 @@ public class CustomerMenu {
             System.out.printf ("  │  Giao đến    : %-27s│%n", truncate(shippingAddress, 27));
             System.out.println("  └──────────────────────────────────────────────┘");
 
-            // Xóa những sp đã đặt khỏi giỏ thật
-            cart.removeAll(selectedItems);
+            // Cap nhat gio hang sau dat hang:
+            // Neu dat het → xoa khoi gio
+            // Neu dat mot phan → giam so luong trong gio
+            for (CartItem orderedItem : selectedItems) {
+                int orderedProductId = orderedItem.getProduct().getProductId();
+                cart.removeIf(cartItem -> {
+                    if (cartItem.getProduct().getProductId() == orderedProductId) {
+                        int remaining = cartItem.getQuantity() - orderedItem.getQuantity();
+                        if (remaining <= 0) {
+                            return true; // xoa khoi gio
+                        } else {
+                            cartItem.setQuantity(remaining); // giam so luong
+                            return false;
+                        }
+                    }
+                    return false;
+                });
+            }
 
         } catch (IllegalArgumentException e) {
-            System.out.println("  ✘ " + e.getMessage());
+            System.out.println("Lỗi: " + e.getMessage());
         } catch (SQLException e) {
-            System.out.println("  ✘ Lỗi đặt hàng: " + e.getMessage());
+            System.out.println("Lỗi đặt hàng: " + e.getMessage());
         }
     }
 
-    // Xóa một hoặc nhiều sản phẩm khỏi giỏ
     private void removeCartItems() {
         printCartTable();
         System.out.println("  Nhập STT muốn xóa (cách nhau dấu cách, ví dụ: 1 3):");
@@ -365,22 +390,18 @@ public class CustomerMenu {
         }
 
         if (indices.isEmpty()) {
-            System.out.println("  ⚠ STT không hợp lệ.");
+            System.out.println("STT không hợp lệ.");
             return;
         }
 
-        System.out.print("  Xác nhận xóa " + indices.size() + " sản phẩm? (Y/N): ");
+        System.out.print("Xác nhận xóa " + indices.size() + " sản phẩm? (Y/N): ");
         if (!scanner.nextLine().trim().equalsIgnoreCase("Y")) return;
 
         // Xóa từ cuối để không lệch index
         indices.sort((a, b) -> b - a);
         for (int idx : indices) cart.remove(idx);
-        System.out.println("  ✔ Đã xóa " + indices.size() + " sản phẩm khỏi giỏ hàng.");
+        System.out.println("Đã xóa " + indices.size() + " sản phẩm khỏi giỏ hàng.");
     }
-
-    // =========================================================================
-    // [4] LỊCH SỬ ĐƠN HÀNG
-    // =========================================================================
 
     private void viewOrderHistory() {
         try {
@@ -394,22 +415,20 @@ public class CustomerMenu {
             System.out.println("\n=== LỊCH SỬ ĐƠN HÀNG ===");
             printOrderTable(orders);
 
-            System.out.print("\n  Nhập mã đơn để xem chi tiết (0 = quay lại): ");
+            System.out.print("\nNhập mã đơn để xem chi tiết (0 = quay lại): ");
             int orderId = readInt(0, Integer.MAX_VALUE);
             if (orderId == 0) return;
 
             // Kiểm tra đơn có thuộc customer này không
             boolean belongs = orders.stream().anyMatch(o -> o.getOrderId() == orderId);
             if (!belongs) {
-                System.out.println("  ⚠ Không tìm thấy đơn hàng #" + orderId
-                        + " trong lịch sử của bạn.");
+                System.out.println("Không tìm thấy đơn hàng #" + orderId + " trong lịch sử của bạn.");
                 return;
             }
-
             viewOrderDetail(orderId, orders);
 
         } catch (SQLException e) {
-            System.out.println("  ✘ Lỗi tải lịch sử: " + e.getMessage());
+            System.out.println("Lỗi tải lịch sử: " + e.getMessage());
         }
     }
 
@@ -423,7 +442,7 @@ public class CustomerMenu {
             List<OrderDetail> details = service.getOrderDetails(orderId);
 
             if (details.isEmpty()) {
-                System.out.println("  ⚠ Không có chi tiết cho đơn #" + orderId);
+                System.out.println("Không có chi tiết cho đơn #" + orderId);
                 return;
             }
 
@@ -439,8 +458,7 @@ public class CustomerMenu {
 
             String line = "  " + "-".repeat(80);
             System.out.println(line);
-            System.out.printf("  | %-28s | %-8s | %-10s | %4s | %14s |%n",
-                    "Sản phẩm", "Lưu trữ", "Màu sắc", "SL", "Thành tiền");
+            System.out.printf("  | %-28s | %-8s | %-10s | %4s | %14s |%n", "Sản phẩm", "Lưu trữ", "Màu sắc", "SL", "Thành tiền");
             System.out.println(line);
 
             BigDecimal total = BigDecimal.ZERO;
@@ -463,10 +481,6 @@ public class CustomerMenu {
         }
     }
 
-    // =========================================================================
-    // [5] QUẢN LÝ HỒ SƠ
-    // =========================================================================
-
     private void handleProfile() {
         while (true) {
             System.out.println("\n=== QUẢN LÝ HỒ SƠ ===");
@@ -483,7 +497,7 @@ public class CustomerMenu {
                         truncate(profile.getAddress(), 30));
                 System.out.println("  └──────────────────────────────────────────────┘");
             } catch (SQLException e) {
-                System.out.println("  ✘ Lỗi tải hồ sơ: " + e.getMessage());
+                System.out.println("Lỗi tải hồ sơ: " + e.getMessage());
             }
 
             System.out.println("\n  [1] Cập nhật thông tin");
@@ -492,7 +506,6 @@ public class CustomerMenu {
 
             if (readInt(0, 1) == 0) return;
 
-            // Nhập thông tin mới — Enter để giữ nguyên giá trị cũ
             System.out.printf("  Họ và tên [%s]: ", currentUser.getFullName());
             String fullName = scanner.nextLine().trim();
             if (fullName.isEmpty()) fullName = currentUser.getFullName();
@@ -518,18 +531,14 @@ public class CustomerMenu {
                 currentUser.setEmail(updated.getEmail());
                 currentUser.setPhone(updated.getPhone());
                 currentUser.setAddress(updated.getAddress());
-                System.out.println("  ✔ Cập nhật hồ sơ thành công!");
+                System.out.println("Cập nhật hồ sơ thành công!");
             } catch (IllegalArgumentException e) {
-                System.out.println("  ✘ " + e.getMessage());
+                System.out.println("Lỗi: " + e.getMessage());
             } catch (SQLException e) {
-                System.out.println("  ✘ Lỗi hệ thống: " + e.getMessage());
+                System.out.println("Lỗi: " + e.getMessage());
             }
         }
     }
-
-    // =========================================================================
-    // IN BẢNG DỮ LIỆU
-    // =========================================================================
 
     private void printProductTable(List<Product> list, FlashSale flash) {
         String line = "  " + "-".repeat(108);
@@ -556,7 +565,7 @@ public class CustomerMenu {
         System.out.println(line);
         System.out.print("  Tổng: " + list.size() + " sản phẩm");
         if (flash != null) {
-            System.out.printf(" | ⚡ Đang giảm %d%% tất cả sản phẩm", flash.getDiscountPercent());
+            System.out.printf(" | Đang giảm %d%% tất cả sản phẩm", flash.getDiscountPercent());
         }
         System.out.println();
     }
@@ -604,10 +613,6 @@ public class CustomerMenu {
         System.out.println("  Tổng: " + orders.size() + " đơn hàng");
     }
 
-    // =========================================================================
-    // HELPERS
-    // =========================================================================
-
     private void printHeader() {
         System.out.println("\n=================== MENU KHÁCH HÀNG ===================");
         System.out.printf("  Xin chào, %s!%s%n",
@@ -633,7 +638,7 @@ public class CustomerMenu {
                 int n = Integer.parseInt(scanner.nextLine().trim());
                 if (n >= min && n <= max) return n;
             } catch (NumberFormatException ignored) {}
-            System.out.print("  ⚠ Vui lòng nhập số hợp lệ: ");
+            System.out.print("Vui lòng nhập số hợp lệ: ");
         }
     }
 
