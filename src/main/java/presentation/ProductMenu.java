@@ -12,25 +12,19 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ProductMenu {
-
     private final ProductService   productService;
     private final CategoryService  categoryService;
     private final FlashSaleService flashSaleService;
     private final Scanner          scanner;
 
-    // Số sản phẩm mỗi trang
     private static final int PAGE_SIZE = 10;
 
     public ProductMenu(Scanner scanner) {
-        this.productService   = new ProductService();
-        this.categoryService  = new CategoryService();
+        this.productService = new ProductService();
+        this.categoryService = new CategoryService();
         this.flashSaleService = new FlashSaleService();
-        this.scanner          = scanner;
+        this.scanner = scanner;
     }
-
-    // =========================================================================
-    // MENU CHÍNH
-    // =========================================================================
 
     public void showMenu() {
         while (true) {
@@ -49,7 +43,7 @@ public class ProductMenu {
             try {
                 choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("  ⚠ Vui lòng nhập số!");
+                System.out.println("Vui lòng nhập số!");
                 continue;
             }
 
@@ -61,15 +55,12 @@ public class ProductMenu {
                 case 5 -> searchProduct();
                 case 6 -> sortByPrice(true);
                 case 7 -> sortByPrice(false);
-                case 0 -> { System.out.println("  ← Quay lại Admin Menu..."); return; }
-                default -> System.out.println("  ⚠ Lựa chọn không hợp lệ!");
+                case 0 -> { System.out.println("Quay lại Admin Menu..."); return; }
+                default -> System.out.println("Lựa chọn không hợp lệ!");
             }
         }
     }
 
-    // =========================================================================
-    // [1] HIỂN THỊ DANH SÁCH — CÓ PHÂN TRANG
-    // =========================================================================
 
     private void displayAllProducts() {
         int page       = 1;
@@ -90,20 +81,17 @@ public class ProductMenu {
             int choice = readIntSafe(-1);
             if (choice == 1) {
                 if (page > 1) page--;
-                else System.out.println("  ⚠ Đang ở trang đầu!");
+                else System.out.println("Đang ở trang đầu!");
             } else if (choice == 2) {
                 if (page < totalPages) page++;
-                else System.out.println("  ⚠ Đang ở trang cuối!");
+                else System.out.println("Đang ở trang cuối!");
             } else if (choice == 0) {
                 return;
             }
         }
     }
 
-    // =========================================================================
-    // IN BẢNG SẢN PHẨM (dùng cho Admin — không có flash sale)
-    // =========================================================================
-
+    //admin
     public void printProductTable(List<Product> list) {
         if (list.isEmpty()) {
             System.out.println("  Chưa có sản phẩm nào.");
@@ -112,8 +100,7 @@ public class ProductMenu {
         String line = "=".repeat(130);
         System.out.println("\n" + line);
         System.out.printf("%-5s | %-35s | %-18s | %-10s | %-12s | %15s | %8s%n",
-                "ID", "TÊN SẢN PHẨM", "DANH MỤC", "DUNG LƯỢNG", "MÀU SẮC",
-                "GIÁ BÁN", "TỒN KHO");
+                "ID", "TÊN SẢN PHẨM", "DANH MỤC", "DUNG LƯỢNG", "MÀU SẮC", "GIÁ BÁN", "TỒN KHO");
         System.out.println("-".repeat(130));
 
         for (Product p : list) {
@@ -129,9 +116,6 @@ public class ProductMenu {
         System.out.println(line);
     }
 
-    // =========================================================================
-    // IN BẢNG SẢN PHẨM CHO CUSTOMER — tính giá flash động theo từng sản phẩm
-    // =========================================================================
 
     public void printProductTableWithFlash(List<Product> list, FlashSale currentFlash) {
         if (list.isEmpty()) {
@@ -143,8 +127,7 @@ public class ProductMenu {
         System.out.println("\n" + line);
         System.out.printf("%-5s | %-35s | %-18s | %-10s | %-12s | %-22s | %8s%n",
                 "ID", "TÊN SẢN PHẨM", "DANH MỤC", "DUNG LƯỢNG", "MÀU SẮC",
-                currentFlash != null ? "GIÁ (⚡ FLASH SALE)" : "GIÁ BÁN",
-                "TỒN KHO");
+                currentFlash != null ? "GIÁ (⚡ FLASH SALE)" : "GIÁ BÁN", "TỒN KHO");
         System.out.println("-".repeat(145));
 
         for (Product p : list) {
@@ -176,20 +159,15 @@ public class ProductMenu {
         }
     }
 
-    // =========================================================================
-    // [2] THÊM SẢN PHẨM
-    // =========================================================================
-
     private void addProduct() {
         System.out.println("\n=== THÊM SẢN PHẨM MỚI ===");
 
         List<Category> categories = categoryService.getAllCategories();
         if (categories.isEmpty()) {
-            System.out.println("  ⚠ Chưa có danh mục nào! Hãy vào Quản lý Danh mục để thêm trước.");
+            System.out.println("Chưa có danh mục nào! Hãy vào Quản lý Danh mục để thêm trước.");
             return;
         }
 
-        // Hiển thị danh mục để chọn
         System.out.println("  Danh sách danh mục:");
         for (Category c : categories) {
             System.out.printf("  [%d] %s%n", c.getCategoryId(), c.getCategoryName());
@@ -201,32 +179,32 @@ public class ProductMenu {
 
         boolean validCat = categories.stream().anyMatch(c -> c.getCategoryId() == categoryId);
         if (!validCat) {
-            System.out.println("  ✘ Danh mục ID " + categoryId + " không tồn tại!");
+            System.out.println("Danh mục ID " + categoryId + " không tồn tại!");
             return;
         }
 
         System.out.print("  Tên sản phẩm: ");
         String name = scanner.nextLine().trim();
-        if (name.isEmpty()) { System.out.println("  ✘ Tên không được để trống!"); return; }
+        if (name.isEmpty()) { System.out.println("Tên không được để trống!"); return; }
 
         System.out.print("  Dung lượng (ví dụ: 128GB): ");
         String storage = scanner.nextLine().trim();
-        if (storage.isEmpty()) { System.out.println("  ✘ Dung lượng không được để trống!"); return; }
+        if (storage.isEmpty()) { System.out.println("Dung lượng không được để trống!"); return; }
 
         System.out.print("  Màu sắc: ");
         String color = scanner.nextLine().trim();
-        if (color.isEmpty()) { System.out.println("  ✘ Màu sắc không được để trống!"); return; }
+        if (color.isEmpty()) { System.out.println("Màu sắc không được để trống!"); return; }
 
         System.out.print("  Giá bán (VND): ");
         BigDecimal price;
         try {
             price = new BigDecimal(scanner.nextLine().trim().replace(",", ""));
             if (price.compareTo(BigDecimal.ZERO) <= 0) {
-                System.out.println("  ✘ Giá phải lớn hơn 0!");
+                System.out.println("Giá phải lớn hơn 0!");
                 return;
             }
         } catch (NumberFormatException e) {
-            System.out.println("  ✘ Giá không hợp lệ!");
+            System.out.println("Giá không hợp lệ!");
             return;
         }
 
@@ -234,9 +212,12 @@ public class ProductMenu {
         int stock;
         try {
             stock = Integer.parseInt(scanner.nextLine().trim());
-            if (stock < 0) { System.out.println("  ✘ Tồn kho không được âm!"); return; }
+            if (stock < 0) {
+                System.out.println("Tồn kho không được âm!");
+                return;
+            }
         } catch (NumberFormatException e) {
-            System.out.println("  ✘ Số lượng không hợp lệ!");
+            System.out.println("Số lượng không hợp lệ!");
             return;
         }
 
@@ -252,15 +233,11 @@ public class ProductMenu {
         Product p = new Product(categoryId, name, brand, storage, color, price, stock, description);
 
         if (productService.addProduct(p)) {
-            System.out.println("  ✔ Thêm sản phẩm thành công!");
+            System.out.println("Thêm sản phẩm thành công!");
         } else {
-            System.out.println("  ✘ Thêm sản phẩm thất bại!");
+            System.out.println("Thêm sản phẩm thất bại!");
         }
     }
-
-    // =========================================================================
-    // [3] SỬA SẢN PHẨM
-    // =========================================================================
 
     private void updateProduct() {
         System.out.println("\n=== CẬP NHẬT SẢN PHẨM ===");
@@ -272,7 +249,7 @@ public class ProductMenu {
 
         Product old = productService.findById(id);
         if (old == null) {
-            System.out.println("  ✘ Không tìm thấy sản phẩm ID = " + id);
+            System.out.println("Không tìm thấy sản phẩm ID = " + id);
             return;
         }
 
@@ -296,12 +273,12 @@ public class ProductMenu {
             try {
                 BigDecimal newPrice = new BigDecimal(priceStr.replace(",", ""));
                 if (newPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    System.out.println("  ⚠ Giá phải lớn hơn 0, giữ nguyên giá cũ.");
+                    System.out.println("Giá phải lớn hơn 0, giữ nguyên giá cũ.");
                 } else {
                     old.setPrice(newPrice);
                 }
             } catch (NumberFormatException e) {
-                System.out.println("  ⚠ Giá không hợp lệ, giữ nguyên giá cũ.");
+                System.out.println("Giá không hợp lệ, giữ nguyên giá cũ.");
             }
         }
 
@@ -311,20 +288,21 @@ public class ProductMenu {
             try {
                 int newStock = Integer.parseInt(stockStr);
                 if (newStock < 0) {
-                    System.out.println("  ⚠ Tồn kho không được âm, giữ nguyên.");
+                    System.out.println("Tồn kho không được âm, giữ nguyên.");
                 } else {
                     old.setStock(newStock);
                 }
             } catch (NumberFormatException e) {
-                System.out.println("  ⚠ Số lượng không hợp lệ, giữ nguyên.");
+                System.out.println("Số lượng không hợp lệ, giữ nguyên.");
             }
         }
 
         System.out.printf("  Mô tả [%s]: ", old.getDescription());
         String desc = scanner.nextLine().trim();
-        if (!desc.isEmpty()) old.setDescription(desc);
+        if (!desc.isEmpty()) {
+            old.setDescription(desc);
+        }
 
-        // Đổi danh mục
         System.out.print("  Đổi danh mục? (Y/N): ");
         if (scanner.nextLine().trim().equalsIgnoreCase("Y")) {
             List<Category> categories = categoryService.getAllCategories();
@@ -339,21 +317,17 @@ public class ProductMenu {
                 if (valid) {
                     old.setCategoryId(newCatId);
                 } else {
-                    System.out.println("  ⚠ ID không hợp lệ, giữ nguyên danh mục cũ.");
+                    System.out.println("ID không hợp lệ, giữ nguyên danh mục cũ.");
                 }
             }
         }
 
         if (productService.updateProduct(old)) {
-            System.out.println("  ✔ Cập nhật sản phẩm thành công!");
+            System.out.println("Cập nhật sản phẩm thành công!");
         } else {
-            System.out.println("  ✘ Cập nhật thất bại!");
+            System.out.println("Cập nhật thất bại!");
         }
     }
-
-    // =========================================================================
-    // [4] XÓA SẢN PHẨM
-    // =========================================================================
 
     private void deleteProduct() {
         System.out.println("\n=== XÓA SẢN PHẨM ===");
@@ -365,7 +339,7 @@ public class ProductMenu {
 
         Product p = productService.findById(id);
         if (p == null) {
-            System.out.println("  ✘ Không tìm thấy sản phẩm ID = " + id);
+            System.out.println("Không tìm thấy sản phẩm ID = " + id);
             return;
         }
 
@@ -375,49 +349,36 @@ public class ProductMenu {
 
         if (scanner.nextLine().trim().equalsIgnoreCase("Y")) {
             if (productService.deleteProduct(id)) {
-                System.out.println("  ✔ Xóa sản phẩm thành công!");
+                System.out.println("Xóa sản phẩm thành công!");
             } else {
-                System.out.println("  ✘ Xóa thất bại! (Sản phẩm có thể đang có trong đơn hàng)");
+                System.out.println("Xóa thất bại! (Sản phẩm có thể đang có trong đơn hàng)");
             }
         } else {
-            System.out.println("  Đã hủy.");
+            System.out.println("Đã hủy.");
         }
     }
-
-    // =========================================================================
-    // [5] TÌM KIẾM
-    // =========================================================================
 
     private void searchProduct() {
         System.out.print("  Nhập từ khóa tìm kiếm: ");
         String keyword = scanner.nextLine().trim();
-        if (keyword.isEmpty()) { System.out.println("  ⚠ Từ khóa không được để trống."); return; }
+        if (keyword.isEmpty()) { System.out.println("Từ khóa không được để trống."); return; }
 
         List<Product> list = productService.searchByName(keyword);
         System.out.printf("%n  Kết quả tìm kiếm cho \"%s\": %d sản phẩm%n", keyword, list.size());
         printProductTable(list);
     }
 
-    // =========================================================================
-    // [6] [7] SẮP XẾP THEO GIÁ
-    // =========================================================================
-
     private void sortByPrice(boolean ascending) {
         List<Product> list = productService.getProductsSortedByPrice(ascending);
-        System.out.printf("%n  Sắp xếp theo giá %s:%n", ascending ? "tăng dần ↑" : "giảm dần ↓");
+        System.out.printf("%n Sắp xếp theo giá %s:%n", ascending ? "tăng dần" : "giảm dần");
         printProductTable(list);
     }
 
-    // =========================================================================
-    // HELPERS
-    // =========================================================================
-
-    /** Đọc số nguyên an toàn, trả về defaultValue nếu lỗi. */
     private int readIntSafe(int defaultValue) {
         try {
             return Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
-            System.out.println("  ⚠ Vui lòng nhập số nguyên hợp lệ.");
+            System.out.println("Vui lòng nhập số nguyên hợp lệ.");
             return defaultValue;
         }
     }

@@ -13,7 +13,8 @@ public class CouponDAOImpl implements CouponDAO {
     @Override
     public boolean createCoupon(Coupon coupon) {
         String sql = "insert into Coupons " +
-                "(coupon_code, discount_percent, max_uses, start_date, end_date, is_active) " + "values (?, ?, ?, ?, ?, true)";
+                "(coupon_code, discount_percent, max_uses, start_date, end_date, is_active) " +
+                "values (?, ?, ?, ?, ?, 1)";
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -95,8 +96,8 @@ public class CouponDAOImpl implements CouponDAO {
 
     @Override
     public boolean useCoupon(String couponCode) {
-        // Chỉ tăng used_count nếu còn lượt dùng
-        String sql = "update Coupons set used_count = used_count + 1 " + "where coupon_code = ? AND used_count < max_uses";
+        String sql = "update Coupons set used_count = used_count + 1 " +
+                "where coupon_code = ? and used_count < max_uses";
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -119,16 +120,17 @@ public class CouponDAOImpl implements CouponDAO {
     @Override
     public void deactivateExpired() {
         // Tat coupon het han HOAC het luot su dung
-        String sql = "update Coupons set is_active = false" + "where is_active = true " +
-                "and (end_date < curdate() or used_count >= max_uses)";
+        String sql = "update Coupons set is_active = 0 " +
+                "where is_active = 1 " +
+                "and (end_date < date(now()) or used_count >= max_uses)";
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println(rows + " Coupon het han/het luot.");
+                System.out.println("Đã tự động tắt " + rows + " Coupon hết hạn/hết lượt");
             }
         } catch (SQLException e) {
-            System.err.println("Loi tat Coupon het han: " + e.getMessage());
+            System.err.println("Lỗi tắt Coupon hết hạn: " + e.getMessage());
         }
     }
 

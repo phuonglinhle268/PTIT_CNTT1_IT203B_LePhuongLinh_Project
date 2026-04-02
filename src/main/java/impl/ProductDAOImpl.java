@@ -148,7 +148,7 @@ public class ProductDAOImpl implements ProductDAO {
     // customer
     @Override
     public List<Product> getProductsInStock() {
-        String sql = BASE_SELECT + "where p.stock > 0 order by c.category_name, p.product_name";
+        String sql = BASE_SELECT + "where p.stock > 0 " + "order by p.product_id ASC";
         return queryList(sql);
     }
 
@@ -197,7 +197,7 @@ public class ProductDAOImpl implements ProductDAO {
             return mapList(pstmt.executeQuery());
 
         } catch (SQLException e) {
-            System.err.println("Lỗi lọc theo danh mục + hãng: " + e.getMessage());
+            System.err.println("Lỗi lọc: " + e.getMessage());
             return new ArrayList<>();
         }
     }

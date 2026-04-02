@@ -20,12 +20,10 @@ public class CustomerMenu {
     private final Scanner scanner;
     private final User currentUser;
     private final List<CartItem> cart = new ArrayList<>();
-
-    private static final DateTimeFormatter DT_FMT =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public CustomerMenu(Scanner scanner, User currentUser) {
-        this.scanner     = scanner;
+        this.scanner = scanner;
         this.currentUser = currentUser;
     }
 
@@ -128,7 +126,6 @@ public class CustomerMenu {
     private void addToCart() {
         FlashSale flash = flashSaleService.getCurrentActiveFlashSale();
         List<Product> products = service.getProductsInStock();
-
         if (products.isEmpty()) {
             System.out.println("Hiện chưa có sản phẩm nào còn hàng.");
             return;
@@ -137,20 +134,27 @@ public class CustomerMenu {
         System.out.println("\n=== CHỌN SẢN PHẨM ===");
         printProductTable(products, flash);
 
-        System.out.print("\n  Nhập ID sản phẩm muốn thêm (0 = hủy): ");
+        System.out.print("\n Nhập ID sản phẩm muốn thêm (0 = hủy): ");
         int productId = readInt(0, Integer.MAX_VALUE);
         if (productId == 0) return;
 
-        System.out.print("  Số lượng: ");
+        System.out.print(" Số lượng: ");
         int qty = readInt(1, 999);
 
         try {
             service.addToCart(cart, productId, qty, flash);
-            String name = cart.stream()
+
+            CartItem added = cart.stream()
                     .filter(i -> i.getProduct().getProductId() == productId)
-                    .map(i -> i.getProduct().getProductName())
-                    .findFirst().orElse("ID " + productId);
-            System.out.printf("Đã thêm \"%s\" x%d vào giỏ hàng!%n", name, qty);
+                    .findFirst().orElse(null);
+
+            if (added != null) {
+                BigDecimal original = added.getProduct().getPrice();
+                BigDecimal unit = added.getUnitPrice();
+                System.out.printf("Đã thêm \"%s\" x %d vào giỏ hàng!%n",
+                        added.getProduct().getProductName(), qty);
+
+            }
         } catch (IllegalArgumentException e) {
             System.out.println("Lỗi: " + e.getMessage());
         }
@@ -188,8 +192,7 @@ public class CustomerMenu {
     private void checkoutSelected() {
         printCartTable();
 
-        System.out.println("\nNhập STT sản phẩm muốn đặt (cách nhau dấu cách, ví dụ: 1 3):");
-        System.out.print("  > ");
+        System.out.print("\nNhập STT sản phẩm muốn đặt (cách nhau dấu cách, ví dụ: 1 3): ");
         String input = scanner.nextLine().trim();
         if (input.isEmpty()) return;
 
@@ -215,9 +218,9 @@ public class CustomerMenu {
             CartItem item = cart.get(stt - 1);
             Product p = item.getProduct();
 
-            System.out.printf("\n  [%d] %s (Giỏ: %d | Tồn kho: %d)%n",
+            System.out.printf("\n  [%d] %s (Giỏ: %d)%n",
                     stt, p.getProductName(), item.getQuantity(), p.getStock());
-            System.out.printf("  Số lượng muốn đặt (1-%d, Enter = đặt hết %d): ",
+            System.out.printf("  Số lượng muốn đặt (1-%d, Enter = đặt hết): ",
                     item.getQuantity(), item.getQuantity());
             String qtyInput = scanner.nextLine().trim();
 
@@ -260,18 +263,17 @@ public class CustomerMenu {
     private void performCheckout(List<CartItem> selectedItems) {
         String shippingAddress;
         String currentAddr = currentUser.getAddress();
-
         if (currentAddr != null && !currentAddr.isEmpty()) {
-            System.out.println("\n  Địa chỉ hiện tại: " + currentAddr);
-            System.out.print("  Dùng địa chỉ này? (Y/N): ");
+            System.out.println("\n Địa chỉ hiện tại: " + currentAddr);
+            System.out.print(" Dùng địa chỉ này? (Y/N): ");
             if (scanner.nextLine().trim().equalsIgnoreCase("Y")) {
                 shippingAddress = currentAddr;
             } else {
-                System.out.print("  Nhập địa chỉ giao hàng mới: ");
+                System.out.print(" Nhập địa chỉ giao hàng mới: ");
                 shippingAddress = scanner.nextLine().trim();
             }
         } else {
-            System.out.print("\n  Nhập địa chỉ giao hàng: ");
+            System.out.print("\n Nhập địa chỉ giao hàng: ");
             shippingAddress = scanner.nextLine().trim();
         }
 
@@ -284,20 +286,39 @@ public class CustomerMenu {
                 .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        System.out.print("  Nhập mã giảm giá (Enter để bỏ qua): ");
+        // ================== SỬA Ở ĐÂY: HIỆN DANH SÁCH MÃ GIẢM GIÁ ==================
+        System.out.println("\n=== DANH SÁCH MÃ GIẢM GIÁ CÒN HIỆU LỰC ===");
+        List<Coupon> allCoupons = couponService.getAllCoupons();
+        boolean hasValid = false;
+        for (Coupon c : allCoupons) {
+            if (c.isUsable()) {   // isUsable() đã kiểm tra active + thời gian + lượt dùng
+                System.out.printf(" → %-12s | Giảm %2d%% | Còn %d/%d lượt | Hạn: %s%n",
+                        c.getCouponCode(),
+                        c.getDiscountPercent(),
+                        c.getMaxUses() - c.getUsedCount(),
+                        c.getMaxUses(),
+                        c.getEndDate());
+                hasValid = true;
+            }
+        }
+        if (!hasValid) {
+            System.out.println(" (Hiện không có mã giảm giá nào khả dụng)");
+        }
+        System.out.println("--------------------------------------------------");
+
+        System.out.print(" Nhập mã giảm giá (Enter để bỏ qua): ");
         String couponInput = scanner.nextLine().trim().toUpperCase();
-        String couponCode  = couponInput.isEmpty() ? null : couponInput;
+        String couponCode = couponInput.isEmpty() ? null : couponInput;
 
         BigDecimal finalTotal = originalTotal;
-
         if (couponCode != null) {
             try {
                 finalTotal = couponService.applyDiscount(originalTotal, couponCode);
                 BigDecimal saved = originalTotal.subtract(finalTotal);
-                System.out.printf("Mã hợp lệ! Tiết kiệm: %,.0f VND%n", saved);
+                System.out.printf("Mã hợp lệ!");
             } catch (IllegalArgumentException e) {
                 System.out.println("Lỗi: " + e.getMessage());
-                System.out.print("  Tiếp tục không áp dụng mã giảm giá? (Y/N): ");
+                System.out.print(" Tiếp tục không áp dụng mã giảm giá? (Y/N): ");
                 if (!scanner.nextLine().trim().equalsIgnoreCase("Y")) return;
                 couponCode = null;
                 finalTotal = originalTotal;
@@ -330,7 +351,7 @@ public class CustomerMenu {
         List<CartItem> tempCart = new ArrayList<>(selectedItems);
 
         try {
-            Order order = service.checkout(tempCart, currentUser.getUserId(), shippingAddress);
+            Order order = service.checkout(tempCart, currentUser.getUserId(), shippingAddress, finalTotal, couponCode);
 
             if (couponCode != null) {
                 couponService.useCoupon(couponCode);
@@ -477,7 +498,7 @@ public class CustomerMenu {
             System.out.printf("  %-62s TỔNG: %,14.0f VND%n", "", total);
 
         } catch (SQLException e) {
-            System.out.println("  ✘ Lỗi tải chi tiết: " + e.getMessage());
+            System.out.println("Lỗi tải chi tiết: " + e.getMessage());
         }
     }
 
@@ -571,50 +592,51 @@ public class CustomerMenu {
     }
 
     private void printCartTable() {
-        String line = "  " + "-".repeat(86);
-        System.out.println("\n  --- GIỎ HÀNG ---");
+        String line = " " + "-".repeat(86);
+        System.out.println("\n --- GIỎ HÀNG ---");
         System.out.println(line);
-        System.out.printf("  | %3s | %-28s | %-7s | %-10s | %4s | %14s |%n",
+        System.out.printf(" | %3s | %-28s | %-7s | %-10s | %4s | %14s |%n",
                 "STT", "Tên sản phẩm", "Lưu trữ", "Màu sắc", "SL", "Thành tiền");
         System.out.println(line);
 
         for (int i = 0; i < cart.size(); i++) {
             CartItem item = cart.get(i);
-            Product  p    = item.getProduct();
-            System.out.printf("  | %3d | %-28s | %-7s | %-10s | %4d | %,14.0f |%n",
+            Product p = item.getProduct();
+            String priceInfo = item.isDiscounted()
+                    ? String.format("%,.0f ⚡", item.getSubtotal())
+                    : String.format("%,.0f", item.getSubtotal());
+
+            System.out.printf(" | %3d | %-28s | %-7s | %-10s | %4d | %14s |%n",
                     i + 1,
                     truncate(p.getProductName(), 28),
                     p.getStorage(),
                     truncate(p.getColor(), 10),
                     item.getQuantity(),
-                    item.getSubtotal());
+                    priceInfo);
         }
-
         System.out.println(line);
-        System.out.printf("  %-72s TỔNG: %,14.0f VND%n",
-                "", service.calculateCartTotal(cart));
+        System.out.printf(" %-72s TỔNG: %,14.0f VND%n", "", service.calculateCartTotal(cart));
     }
 
     private void printOrderTable(List<Order> orders) {
         String line = "  " + "-".repeat(80);
         System.out.println(line);
-        System.out.printf("  | %6s | %-16s | %14s | %-14s | %-10s |%n",
-                "Mã ĐH", "Ngày đặt", "Tổng tiền", "Trạng thái", "Mã CK");
+        System.out.printf("  | %6s | %-16s | %14s | %-14s |%n",
+                "Mã ĐH", "Ngày đặt", "Tổng tiền", "Trạng thái");
         System.out.println(line);
         for (Order o : orders) {
-            System.out.printf("  | %6d | %-16s | %,14.0f | %-14s | %-10s |%n",
+            System.out.printf("  | %6d | %-16s | %,14.0f | %-14s |%n",
                     o.getOrderId(),
                     o.getOrderDate() != null ? o.getOrderDate().format(DT_FMT) : "N/A",
                     o.getTotalAmount(),
-                    statusLabel(o.getStatus()),
-                    o.getCouponCode() != null ? o.getCouponCode() : "-");
+                    statusLabel(o.getStatus()));
         }
         System.out.println(line);
         System.out.println("  Tổng: " + orders.size() + " đơn hàng");
     }
 
     private void printHeader() {
-        System.out.println("\n=================== MENU KHÁCH HÀNG ===================");
+        System.out.println("\n=================== MENU CHO KHÁCH HÀNG ===================");
         System.out.printf("  Xin chào, %s!%s%n",
                 currentUser.getFullName(),
                 cart.isEmpty() ? "" : "  |  Giỏ hàng: " + cart.size() + " loại sp");

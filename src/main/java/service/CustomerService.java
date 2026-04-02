@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Optional;
 
 public class CustomerService {
-    private final ProductDAO     productDAO;
-    private final CategoryDAO    categoryDAO;
-    private final OrderDAO       orderDAO;
+    private final ProductDAO productDAO;
+    private final CategoryDAO categoryDAO;
+    private final OrderDAO orderDAO;
     private final UserProfileDAO profileDAO;
     private final FlashSaleService flashSaleService;
 
@@ -72,7 +72,6 @@ public class CustomerService {
     // giỏ hàng
 
     //Them san pham vao gio hang.
-
     public void addToCart(List<CartItem> cart, int productId,
                           int quantity, FlashSale flashSale) {
         if (quantity <= 0) {
@@ -95,14 +94,12 @@ public class CustomerService {
 
         if (alreadyInCart + quantity > product.getStock()) {
             throw new IllegalArgumentException(
-                    "Không đủ hàng! Tồn kho: " + product.getStock() +
-                            " | Đã có trong giỏ: " + alreadyInCart + ".");
+                    "Không đủ hàng! Tồn kho: " + product.getStock() + " | Đã có trong giỏ: " + alreadyInCart + ".");
         }
 
         // Tinh gia thuc te tai luc them vao gio
         BigDecimal unitPrice = (flashSale != null)
-                ? flashSaleService.calculateFlashPrice(product, flashSale)
-                : product.getPrice();
+                ? flashSaleService.calculateFlashPrice(product, flashSale) : product.getPrice();
 
         // Neu da co trong gio → cong them so luong
         for (CartItem item : cart) {
@@ -116,7 +113,7 @@ public class CustomerService {
         cart.add(new CartItem(product, quantity, unitPrice));
     }
 
-    /** Overload khong co flash sale. */
+    // Overload khong co flash sale
     public void addToCart(List<CartItem> cart, int productId, int quantity) {
         addToCart(cart, productId, quantity, null);
     }
@@ -135,9 +132,10 @@ public class CustomerService {
     }
 
     //đặt hàng
-
     public Order checkout(List<CartItem> cart, int userId,
-                          String shippingAddress) throws SQLException {
+                          String shippingAddress, BigDecimal finalTotal, String couponCode)
+            throws SQLException {
+
         if (cart.isEmpty()) {
             throw new IllegalArgumentException("Giỏ hàng trống");
         }
@@ -145,27 +143,29 @@ public class CustomerService {
             throw new IllegalArgumentException("Địa chỉ giao hàng không được để trống");
         }
 
-        BigDecimal total = calculateCartTotal(cart);
-        Order order = new Order(userId, total, "PENDING");
+        // Tạo order với tổng tiền THỰC TẾ sau giảm (finalTotal)
+        Order order = new Order(userId, finalTotal, "PENDING");
+        order.setCouponCode(couponCode);   // lưu mã giảm giá
 
         List<OrderDetail> details = new ArrayList<>();
         for (CartItem item : cart) {
             OrderDetail detail = new OrderDetail();
             detail.setProductId(item.getProduct().getProductId());
             detail.setQuantity(item.getQuantity());
-            detail.setPriceAtPurchase(item.getUnitPrice());
+            detail.setPriceAtPurchase(item.getUnitPrice());   // giá lúc mua (có thể là flash)
             details.add(detail);
         }
 
         boolean success = orderDAO.createOrder(order, details);
-        if (!success) throw new SQLException("Dat hang that bai.");
+        if (!success) {
+            throw new SQLException("Đặt hàng thất bại.");
+        }
 
         cart.clear();
         return order;
     }
 
     //đơn
-
     public List<Order> getOrderHistory(int userId) throws SQLException {
         return orderDAO.findByUserId(userId);
     }
@@ -185,7 +185,7 @@ public class CustomerService {
         if (fullName == null || fullName.trim().isEmpty()) {
             throw new IllegalArgumentException("Họ tên không được để trống");
         }
-        if (email == null || !email.contains("@")) {
+        if (email == null || !email.contains("@gmail.com")) {
             throw new IllegalArgumentException("Email không hợp lệ");
         }
 

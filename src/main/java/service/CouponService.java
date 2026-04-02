@@ -80,7 +80,7 @@ public class CouponService {
             return originalAmount;
         }
 
-        Coupon coupon = validateCoupon(couponCode); // ném exception nếu không hợp lệ
+        Coupon coupon = validateCoupon(couponCode);
         BigDecimal discount = BigDecimal.valueOf(coupon.getDiscountPercent())
                 .divide(BigDecimal.valueOf(100));
 

@@ -15,10 +15,7 @@ public class FlashSaleService {
 
     //admin
 
-    /**
-     * Tạo Flash Sale mới.
-     * Validate: % hợp lệ, thời gian hợp lệ, không trùng với flash sale đang chạy.
-     */
+    //Tạo Flash Sale mới
     public boolean createFlashSale(FlashSale fs) {
         if (fs.getDiscountPercent() < 1 || fs.getDiscountPercent() > 99) {
             throw new IllegalArgumentException("Phần trăm giảm phải từ 1% đến 99%.");
@@ -54,14 +51,19 @@ public class FlashSaleService {
 
 //      Tính giá flash sale của một sản phẩm.
 //      Trả về giá gốc nếu không có flash sale
-    public BigDecimal calculateFlashPrice(Product product, FlashSale flashSale) {
-        if (flashSale == null || product == null) {
-            return product != null ? product.getPrice() : BigDecimal.ZERO;
-        }
-        BigDecimal discount = BigDecimal.valueOf(flashSale.getDiscountPercent())
-                .divide(BigDecimal.valueOf(100));
-        return product.getPrice()
-                .multiply(BigDecimal.ONE.subtract(discount))
-                .setScale(0, RoundingMode.HALF_UP);
+public BigDecimal calculateFlashPrice(Product product, FlashSale flashSale) {
+    if (flashSale == null || product == null) {
+        return product != null ? product.getPrice() : BigDecimal.ZERO;
     }
+
+    BigDecimal originalPrice = product.getPrice();
+    BigDecimal discountRate = BigDecimal.valueOf(flashSale.getDiscountPercent())
+            .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+
+    BigDecimal flashPrice = originalPrice
+            .multiply(BigDecimal.ONE.subtract(discountRate))
+            .setScale(0, RoundingMode.HALF_UP);
+
+    return flashPrice;
+}
 }

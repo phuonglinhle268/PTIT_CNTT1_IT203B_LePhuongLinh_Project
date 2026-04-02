@@ -12,7 +12,7 @@ import java.util.Scanner;
 public class AdminFlashSaleMenu {
 
     private final FlashSaleService service = new FlashSaleService();
-    private final Scanner          scanner;
+    private final Scanner scanner;
 
     private static final DateTimeFormatter INPUT_FMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -67,15 +67,15 @@ public class AdminFlashSaleMenu {
         try {
             FlashSale fs = new FlashSale(percent, startTime, endTime);
             if (service.createFlashSale(fs)) {
-                System.out.println("  ✔ Tạo Flash Sale thành công!");
+                System.out.println("Tạo Flash Sale thành công!");
                 System.out.printf("    ID: %d | Giảm %d%% | %s → %s%n",
                         fs.getFlashSaleId(), percent,
                         startTime.format(DISPLAY_FMT), endTime.format(DISPLAY_FMT));
             } else {
-                System.out.println("  ✘ Tạo thất bại.");
+                System.out.println("Tạo thất bại.");
             }
         } catch (IllegalArgumentException e) {
-            System.out.println("  ✘ " + e.getMessage());
+            System.out.println("Lỗi tạo: " + e.getMessage());
         }
     }
 
@@ -91,13 +91,13 @@ public class AdminFlashSaleMenu {
         FlashSale target = list.stream()
                 .filter(f -> f.getFlashSaleId() == id)
                 .findFirst().orElse(null);
-        if (target == null) { System.out.println("  ✘ Không tìm thấy ID " + id); return; }
+        if (target == null) { System.out.println("Không tìm thấy ID " + id); return; }
 
         boolean newState = !target.isActive();
         if (service.toggleActive(id, newState)) {
-            System.out.printf("  ✔ Đã %s Flash Sale #%d.%n", newState ? "bật" : "tắt", id);
+            System.out.printf("Đã %s Flash Sale #%d.%n", newState ? "bật" : "tắt", id);
         } else {
-            System.out.println("  ✘ Thao tác thất bại.");
+            System.out.println("Thao tác thất bại.");
         }
     }
 
@@ -114,13 +114,11 @@ public class AdminFlashSaleMenu {
         if (!scanner.nextLine().trim().equalsIgnoreCase("Y")) return;
 
         if (service.deleteFlashSale(id)) {
-            System.out.println("  ✔ Đã xóa Flash Sale #" + id);
+            System.out.println("Đã xóa Flash Sale #" + id);
         } else {
-            System.out.println("  ✘ Xóa thất bại hoặc không tìm thấy ID.");
+            System.out.println("Xóa thất bại hoặc không tìm thấy ID.");
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     private void printTable(List<FlashSale> list) {
         String line = "  " + "-".repeat(72);
@@ -147,7 +145,7 @@ public class AdminFlashSaleMenu {
             try {
                 return LocalDateTime.parse(input, INPUT_FMT);
             } catch (DateTimeParseException e) {
-                System.out.println("  ⚠ Định dạng sai, nhập lại (yyyy-MM-dd HH:mm) hoặc 0 để hủy:");
+                System.out.println("Định dạng sai, nhập lại (yyyy-MM-dd HH:mm) hoặc 0 để hủy:");
             }
         }
     }
@@ -158,7 +156,7 @@ public class AdminFlashSaleMenu {
                 int n = Integer.parseInt(scanner.nextLine().trim());
                 if (n >= min && n <= max) return n;
             } catch (NumberFormatException ignored) {}
-            System.out.print("  ⚠ Vui lòng nhập số hợp lệ: ");
+            System.out.print("Vui lòng nhập số hợp lệ: ");
         }
     }
 }

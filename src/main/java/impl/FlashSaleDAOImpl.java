@@ -12,7 +12,7 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
 
     @Override
     public boolean createFlashSale(FlashSale fs) {
-        String sql = "insert into FlashSales (discount_percent, start_time, end_time, is_active) " + "values (?, ?, ?, true)";
+        String sql = "insert into FlashSales (discount_percent, start_time, end_time, is_active) " + "values (?, ?, ?, 1)";
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -36,7 +36,6 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
 
     @Override
     public List<FlashSale> getAllFlashSales() {
-        // Sắp xếp: đang diễn ra trước, rồi sắp tới, rồi đã xong
         String sql = "select * from FlashSales order by start_time asc";
         List<FlashSale> list = new ArrayList<>();
 
@@ -54,7 +53,7 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
 
     @Override
     public List<FlashSale> getActiveFlashSales() {
-        String sql = "select * from FlashSales where is_active = true order by start_time asc";
+        String sql = "select * from FlashSales where is_active = 1 order by start_time asc";
         List<FlashSale> list = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
@@ -72,15 +71,16 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
     @Override
     public void deactivateExpired() {
         // Tu dong tat flash sale da het gio (end_time < NOW())
-        String sql = "update FlashSales set is_active = false " + "where is_active = true and end_time < now()";
+        String sql = "update FlashSales set is_active = 0 " +
+                "where is_active = 1 and end_time < now()";
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println("[System] Da tu dong tat " + rows + " Flash Sale het han.");
+                System.out.println("Đã tự động tắt " + rows + " - đã hết Flash Sale");
             }
         } catch (SQLException e) {
-            System.err.println("Loi tat Flash Sale het han: " + e.getMessage());
+            System.err.println("Lỗi tắt FlashSale hết hạn: " + e.getMessage());
         }
     }
 
@@ -88,7 +88,7 @@ public class FlashSaleDAOImpl implements FlashSaleDAO {
     public FlashSale getCurrentActiveFlashSale() {
         // is_active = true VÀ đang trong khoảng thời gian
         String sql = "select * from FlashSales " +
-                "where is_active = true and start_time <= now() and end_time >= now() " +
+                "where is_active = 1 and start_time <= now() and end_time >= now() " +
                 "order by start_time desc limit 1";
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();

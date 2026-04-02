@@ -11,7 +11,7 @@ import java.util.Scanner;
 public class AdminCouponMenu {
 
     private final CouponService service = new CouponService();
-    private final Scanner       scanner;
+    private final Scanner scanner;
 
     public AdminCouponMenu(Scanner scanner) {
         this.scanner = scanner;
@@ -41,7 +41,7 @@ public class AdminCouponMenu {
     private void viewAll() {
         List<Coupon> list = service.getAllCoupons();
         if (list.isEmpty()) {
-            System.out.println("  Chưa có mã giảm giá nào.");
+            System.out.println("Chưa có mã giảm giá nào.");
             return;
         }
         printTable(list);
@@ -68,14 +68,14 @@ public class AdminCouponMenu {
         try {
             Coupon coupon = new Coupon(code, percent, maxUses, startDate, endDate);
             if (service.createCoupon(coupon)) {
-                System.out.println("  ✔ Tạo mã giảm giá thành công!");
+                System.out.println("Tạo mã giảm giá thành công!");
                 System.out.printf("    ID: %d | Mã: %s | Giảm %d%% | %s → %s%n",
                         coupon.getCouponId(), code, percent, startDate, endDate);
             } else {
-                System.out.println("  ✘ Tạo thất bại (mã đã tồn tại?).");
+                System.out.println("Tạo thất bại (mã đã tồn tại?).");
             }
         } catch (IllegalArgumentException e) {
-            System.out.println("  ✘ " + e.getMessage());
+            System.out.println("Lỗi: " + e.getMessage());
         }
     }
 
@@ -91,14 +91,14 @@ public class AdminCouponMenu {
         Coupon target = list.stream()
                 .filter(c -> c.getCouponId() == id)
                 .findFirst().orElse(null);
-        if (target == null) { System.out.println("  ✘ Không tìm thấy ID " + id); return; }
+        if (target == null) { System.out.println("Không tìm thấy ID " + id); return; }
 
         boolean newState = !target.isActive();
         if (service.toggleActive(id, newState)) {
-            System.out.printf("  ✔ Đã %s mã \"%s\" (#%d).%n",
+            System.out.printf("Đã %s mã \"%s\" (#%d).%n",
                     newState ? "bật" : "tắt", target.getCouponCode(), id);
         } else {
-            System.out.println("  ✘ Thao tác thất bại.");
+            System.out.println("Thao tác thất bại.");
         }
     }
 
@@ -115,13 +115,12 @@ public class AdminCouponMenu {
         if (!scanner.nextLine().trim().equalsIgnoreCase("Y")) return;
 
         if (service.deleteCoupon(id)) {
-            System.out.println("  ✔ Đã xóa mã #" + id);
+            System.out.println("Đã xóa mã #" + id);
         } else {
-            System.out.println("  ✘ Xóa thất bại hoặc không tìm thấy ID.");
+            System.out.println("Xóa thất bại hoặc không tìm thấy ID.");
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     private void printTable(List<Coupon> list) {
         String line = "  " + "-".repeat(82);
@@ -151,7 +150,7 @@ public class AdminCouponMenu {
             try {
                 return LocalDate.parse(input);
             } catch (DateTimeParseException e) {
-                System.out.println("  ⚠ Định dạng sai, nhập lại (yyyy-MM-dd) hoặc 0 để hủy:");
+                System.out.println("Định dạng sai, nhập lại (yyyy-MM-dd) hoặc 0 để hủy:");
             }
         }
     }
@@ -162,7 +161,7 @@ public class AdminCouponMenu {
                 int n = Integer.parseInt(scanner.nextLine().trim());
                 if (n >= min && n <= max) return n;
             } catch (NumberFormatException ignored) {}
-            System.out.print("  ⚠ Vui lòng nhập số hợp lệ: ");
+            System.out.print("Vui lòng nhập số hợp lệ: ");
         }
     }
 }
